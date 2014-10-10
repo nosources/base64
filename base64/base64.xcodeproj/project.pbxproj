@@ -233,6 +233,7 @@
 				52D603DE19DA8321005DCB84 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

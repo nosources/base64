@@ -1,11 +1,3 @@
-//
-//  main.c
-//  base64
-//
-//  Created by nosources on 14-9-30.
-//  Copyright (c) 2014年 nosources. All rights reserved.
-//
-
 /*********************************************************************\
  
  MODULE NAME:    b64.c
@@ -59,29 +51,33 @@
  16 (Q)  20 (U)  9 (J)   3 (D)    17 (R) 0 (A)  NA (=) NA (=)
  010000  010100  001001  000011   010001 000000 000000 000000
  
+ A
+ 01000001
  
+ Q      Q
+ 010000 01
  QUJDRA==
  
  Decoding is the process in reverse.  A 'decode' lookup
  table has been created to avoid string scans.
  
  DESIGN GOALS:	Specifically:
- Code is a stand-alone utility to perform base64
- encoding/decoding. It should be genuinely useful
- when the need arises and it meets a need that is
- likely to occur for some users.
- Code acts as sample code to show the author's
- design and coding style.
+ Code is a stand-alone utility to perform base64 
+ encoding/decoding. It should be genuinely useful 
+ when the need arises and it meets a need that is 
+ likely to occur for some users.  
+ Code acts as sample code to show the author's 
+ design and coding style.  
  
- Generally:
+ Generally: 
  This program is designed to survive:
  Everything you need is in a single source file.
  It compiles cleanly using a vanilla ANSI C compiler.
- It does its job correctly with a minimum of fuss.
- The code is not overly clever, not overly simplistic
- and not overly verbose.
- Access is 'cut and paste' from a web page.
- Terms of use are reasonable.
+ It does its job correctly with a minimum of fuss.  
+ The code is not overly clever, not overly simplistic 
+ and not overly verbose. 
+ Access is 'cut and paste' from a web page.  
+ Terms of use are reasonable.  
  
  VALIDATION:     Non-trivial code is never without errors.  This
  file likely has some problems, since it has only
@@ -222,7 +218,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "base64.h"
 
 /*
  ** Translation Table as described in RFC1113
@@ -334,7 +329,7 @@ static int encode( FILE *infile, FILE *outfile, int linesize )
  ** decode 4 '6-bit' characters into 3 8-bit binary bytes
  */
 static void decodeblock( unsigned char *in, unsigned char *out )
-{
+{   
     out[ 0 ] = (unsigned char ) (in[0] << 2 | in[1] >> 4);
     out[ 1 ] = (unsigned char ) (in[1] << 4 | in[2] >> 2);
     out[ 2 ] = (unsigned char ) (((in[2] << 6) & 0xc0) | in[3]);
@@ -393,6 +388,103 @@ static int decode( FILE *infile, FILE *outfile )
     return( retcode );
 }
 
+/*
+ ** b64
+ **
+ ** 'engine' that opens streams and calls encode/decode
+ */
+
+static int b64( char opt, char *infilename, char *outfilename, int linesize )
+{
+    FILE *infile;
+    int retcode = B64_FILE_ERROR;
+    
+    if( !infilename ) {
+        infile = stdin;
+    }
+    else {
+        infile = fopen( infilename, "rb" );
+    }
+    if( !infile ) {
+        perror( infilename );
+    }
+    else {
+        FILE *outfile;
+        if( !outfilename ) {
+            outfile = stdout;
+        }
+        else {
+            outfile = fopen( outfilename, "wb" );
+        }
+        if( !outfile ) {
+            perror( outfilename );
+        }
+        else {
+            if( opt == 'e' ) {
+                retcode = encode( infile, outfile, linesize );
+            }
+            else {
+                retcode = decode( infile, outfile );
+            }
+			if( retcode == 0 ) {
+	            if (ferror( infile ) != 0 || ferror( outfile ) != 0) {
+                    perror( b64_message( B64_FILE_IO_ERROR ) );
+	                retcode = B64_FILE_IO_ERROR;
+	            }
+            }
+            if( outfile != stdout ) {
+                if( fclose( outfile ) != 0 ) {
+                    perror( b64_message( B64_ERROR_OUT_CLOSE ) );
+                    retcode = B64_FILE_IO_ERROR;
+                }
+            }
+        }
+        if( infile != stdin ) {
+			if( fclose( infile ) != 0 ) {
+				perror( b64_message( B64_ERROR_OUT_CLOSE ) );
+				retcode = B64_FILE_IO_ERROR;
+			}
+        }
+    }
+    
+    return( retcode );
+}
+
+/*
+ ** showuse
+ **
+ ** display usage information, help, version info
+ */
+static void showuse( int morehelp )
+{
+    {
+        printf( "\n" );
+        printf( "  b64      (Base64 Encode/Decode)      Bob Trower 08/03/01 \n" );
+        printf( "           (C) Copr Bob Trower 1986-01.      Version 0.12R \n" );
+        printf( "  Usage:   b64 -option [-l<num>] [<FileIn> [<FileOut>]]\n" );
+        printf( "  Purpose: This program is a simple utility that implements\n" );
+        printf( "           Base64 Content-Transfer-Encoding (RFC1113).\n" );
+    }
+    if( morehelp == 0 ) {
+        printf( "           Use -h option for additional help.\n" );
+    }
+    else {
+        printf( "  Options: -e  encode to Base64   -h  This help text.\n" );
+        printf( "           -d  decode from Base64 -?  This help text.\n" );
+        printf( "  Note:    -l  use to change line size (from 72 characters)\n" );
+        printf( "  Returns: 0 = success.  Non-zero is an error code.\n" );
+        printf( "  ErrCode: 1 = Bad Syntax, 2 = File Open, 3 = File I/O\n" );
+        printf( "  Example: b64 -e binfile b64file     <- Encode to b64\n" );
+        printf( "           b64 -d b64file binfile     <- Decode from b64\n" );
+        printf( "           b64 -e -l40 infile outfile <- Line Length of 40\n" );
+        printf( "  Note:    Will act as a filter, but this should only be\n" );
+        printf( "           used on text files due to translations made by\n" );
+        printf( "           operating systems.\n" );
+        printf( "  Source:  Source code and latest releases can be found at:\n" );
+        printf( "           http://base64.sourceforge.net\n" );
+        printf( "  Release: 0.12.00, Mon Feb 14 17:17:00 2011, ANSI-SOURCE C\n" );
+    }
+}
 
 #define B64_DEF_LINE_SIZE   72
 #define B64_MIN_LINE_SIZE    4
@@ -404,10 +496,24 @@ static int decode( FILE *infile, FILE *outfile )
  **
  ** parse and validate arguments and call b64 engine or help
  */
+#include "base64.h"
 int main( int argc, char **argv )
 {
-    char *p = "A";
-    char temp[10] = {0};
+//    char opt = (char) 0;
+//    int retcode = 0;
+//    int linesize = B64_DEF_LINE_SIZE;
+//    
+//    retcode = b64( opt, "a", "b", linesize );
+//    return( retcode );
+    char *p = "yxc\njhgbuyguy\\\\tuyxrzreutr643wxg8hi09njiyvyucxr4cdxutyghv";
+    char *temps = p;
+    char temp[100] = {0};
     encode_ss(&p, temp);
-    printf("cipher is:\"%s\".\n", temp);
+    printf("%s.\n", temp);
+    char temp2[100] = {0};
+    decode_ss(temp, temp2);
+    printf("%s", temp2);
+    if (0 != strcmp(temps, temp2) ) {
+        int a  =1;
+    }
 }
